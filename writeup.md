@@ -19,8 +19,8 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./test_images/undistorted.jpg "Undistorted"
-[image2]: ./test_images/distorted.jpg "Distorted"
+[image1]: ./test_images/distorted.jpg "Distorted"
+[image2]: ./test_images/undistorted.jpg "Unistorted"
 [image3]: ./test_images/before_wrap50.png "Input frame"
 [image4]: ./test_images/wraped50.png "Wraped"
 [image5]: ./test_images/gradient50.png "X, Y Gradient"
@@ -45,7 +45,7 @@ You're reading it!
 
 ### Camera Calibration
 
-#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
+#### 1. Camera matrix and distortion coefficients. 
 
 The code for this step is contained in the first code cell of the IPython notebook located in "./P1.ipynb"
 
@@ -64,20 +64,23 @@ and obtained this result:
 
 ![alt text][image3]
 
-#### 2.
-I used a combination of color and gradient thresholds to generate a binary image, see `def color_and_gradient_pipeline` function
-First I blurred the image with gaussian blurring to remove the noise, then
+#### 2. Color and gradient tresholding
+
+I used a combination of color and gradient thresholds to generate a binary image, see `def color_and_gradient_pipeline` function. 
+First I blurred the image with gaussian blurring filter to remove the noise, then
 I computed color treshold masks to select left yellow lane and right white line, the color mask is one of the constituents in a result binary image, all color tresholding is done in HSV color space that is resilient to bright or dark color saturations: 
 
 ![alt text][image6]
 
-The image then got transformed into HLS color space as L-channel is the most stable for gradient tresholding, then Sobol gradient operator werecomputed for X and Y with correspoding tresholds and kernel size, the result of this operation is combined into mask
+The image then got transformed into HLS color space as L-channel is the most stable for gradient tresholding, then Sobol gradient operators were computed for X and Y with correspoding tresholds and kernel size, the result of this operation is combined into mask:
+
 `final_binary[((sybinary >= 0.5) | (sxbinary == 1) ) & (mask_lane >= 0.5)] = 1`:
+
 
 ![alt text][image5]
  
 
-#### 3. 
+#### 3. Perspective transform 
 
 The code for my perspective transform includes a function called `warp_image()`, which appears in the 2rd code cell of the IPython notebook).  The `warp_image()` function takes as inputs an image (`img`) and defines source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
@@ -101,11 +104,12 @@ This resulted in the following source and destination points:
 | 835, 547      | 960, 590      |
 | 1100, 720     | 960, 720      |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+
+I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image:
 
 ![alt text][image4]
 
-#### 4. 
+#### 4. Lane detection and visualization
 
 I built a histogram of intensity pixels on a wraped image of a gradient:
 
@@ -116,7 +120,7 @@ and used a window search method around maximum peaks of intensities to find non 
 ![alt text][image8]
 
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+#### 5. Lane curvature position of the vehicle with respect to center.
 
 `find_lanes` function returns left and right fit polynoms of a 2d degree, then `calc_curvature` function computes curvature and car's offset from the center in a following manner:
 
@@ -129,7 +133,8 @@ we define pixels to real world meters conversion coefficients and then fit new p
 
 For a car's offset from the center we compute `lane_center_x = leftx[0] + (rightx[0] - leftx[0])/2` the detected lane center and how far is it from the image's center. 
 
-#### 6. 
+#### 6. Output image
+
 The result lane gets unwraped by using `unwrap_image` function where we used a reverse procedure of a `wrap_image` function:
 
 ![alt text][image9]
@@ -145,8 +150,11 @@ The result lane gets unwraped by using `unwrap_image` function where we used a r
 
 #### 1. 
 
-Here's a project video [link to my video result](./test_video_output/project_video.mp4)
-Here's a challenge video [link to my video result](./test_video_output/challenge_video.mp4)
+Here's a project video [link to my video result](./test_videos_output/project_video.mp4)
+
+#### 2. 
+
+Here's a challenge video [link to my challenge video result](./test_videos_output/challenge_video.mp4)
 
 ---
 
@@ -155,8 +163,13 @@ Here's a challenge video [link to my video result](./test_video_output/challenge
 
 #### 1.
 
+The pipeline works reasonably ok in scenes with decent amount of shades, reasonable amount of lights, lanes going more or less straigt into a car's camera at 90 degrees angle. To make curvature computations more stable I tried to smooth out new lane findings using a well known smoothing technique: `lane = 0.9*lane + 0.1*new_lane`. That approach provides some robustness at a cost of the entire solution not being able to adapt to quick lane changes like harder challenge video.
 
-The pipeline works reasonably ok in scenes with decent amount of shades, reasonable amount of lights, lanes going more or less straigt into a car's camera at 90 degrees angle. To make curvature computatins more stable I tried to smooth out new lane findings using a well known smoothing: `lane = 0.9*lane + 0.1*new_lane`. That approach provides some robustness at a cost of the entire solution not being able to adapt to quik lane changes like harder challenge video has.
+#### 2.
+
 I also had to implemented number of tricks to cover challenge video project, i.e:
 I had to introduce color tresholding in HSV space for yellow and white lane. So obviosly the method will fail if left lane is not yellow.
-There is part of that video where car goes under the bridge into a very dark spot, that drives all the gradients and color treshold crazy. To make the algorithm more robust I track the area of a lane polygon and if it starts exceeding rapidly I stop accepting lane changes until things get back to normal again. That means during some period of time (when a car goes through these tough scenes) we can't reliably detect lanes, so the error could be a bit higher then usual.  
+
+#### 3.
+
+There is part of the challenge video where car goes under the bridge into a very dark spot, that drives all the gradients and color treshold crazy. To make the algorithm more robust I track the area of a lane polygon and if it starts exceeding rapidly I stop accepting lane changes until things get back to normal again. That means during some period of time (when a car goes through these tough scenes) we can't reliably detect lanes, so the error could be a bit higher then usual.  
